@@ -107,7 +107,7 @@ async def predecir(request: SentimentRequest):
     prediccion = predict_sentiment(test_text, model, tokenizer, 'cpu') #cambia cpu por device
     return {'Sentimiento': prediccion}
 
-'''import uvicorn
+import uvicorn
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 10000))  # Usa el puerto asignado por Render
-    uvicorn.run(app, host="0.0.0.0", port=port)'''
+    uvicorn.run(app, host="0.0.0.0", port=port)
