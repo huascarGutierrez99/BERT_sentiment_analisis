@@ -5,11 +5,27 @@ from transformers import AutoTokenizer
 from transformers import BertModel
 from torch import nn
 
+from huggingface_hub import snapshot_download
+import torch
+
+#Configuracion del repositorio
+REPO_NAME = "HuascarGutierrez/BERT_sentiment_analisis_for_movie_comments_english"
+LOCAL_DIR = "modelo_local"
+
+# Descargar modelo y tokenizer
+snapshot_download(
+    repo_id= REPO_NAME,
+    local_dir= LOCAL_DIR,
+    local_dir_use_symlinks= False #guarda los archivos fisicos, no enlaces
+)
+
+
+
 #inicializacion
 N_CLASSES = 2
 MAX_LEN = 200
 PRE_TRAINED_MODEL = 'bert-base-cased'
-MODEL_PATH= 'bert_sentiment_model.pth'
+MODEL_PATH= 'modelo_local/bert_sentiment_model.pth'
 TOKENIZER_PATH = 'bert_tokenizer'
 #device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
@@ -91,7 +107,7 @@ async def predecir(request: SentimentRequest):
     prediccion = predict_sentiment(test_text, model, tokenizer, 'cpu') #cambia cpu por device
     return {'Sentimiento': prediccion}
 
-import uvicorn
+'''import uvicorn
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 10000))  # Usa el puerto asignado por Render
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    uvicorn.run(app, host="0.0.0.0", port=port)'''
