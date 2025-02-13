@@ -5,13 +5,29 @@ from transformers import AutoTokenizer
 from transformers import BertModel
 from torch import nn
 
+from huggingface_hub import snapshot_download
+import torch
+
+#Configuracion del repositorio
+REPO_NAME = "HuascarGutierrez/BERT_sentiment_analisis_for_movie_comments_english"
+LOCAL_DIR = "modelo_local"
+
+# Descargar modelo y tokenizer
+snapshot_download(
+    repo_id= REPO_NAME,
+    local_dir= LOCAL_DIR,
+    local_dir_use_symlinks= False #guarda los archivos fisicos, no enlaces
+)
+
+
+
 #inicializacion
 N_CLASSES = 2
 MAX_LEN = 200
 PRE_TRAINED_MODEL = 'bert-base-cased'
-MODEL_PATH= 'bert_sentiment_model.pth'
+MODEL_PATH= 'modelo_local/bert_sentiment_model.pth'
 TOKENIZER_PATH = 'bert_tokenizer'
-device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+#device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
 app = FastAPI()
 
@@ -45,15 +61,15 @@ class BERTSentimentClassifier(nn.Module):
         return output
 # Cargar modelo preentrenado
 model = BERTSentimentClassifier(N_CLASSES)
-model.load_state_dict(torch.load(MODEL_PATH, map_location=device))
-model.to(device)
+model.load_state_dict(torch.load(MODEL_PATH, map_location='cpu')) #cambia cpu por device que esta comentado arriba
+model.to('cpu')
 print("Modelo cargado exitosamente.")
 
 # Cargar tokenizer
 tokenizer = AutoTokenizer.from_pretrained(TOKENIZER_PATH)
 print("Tokenizer cargado exitosamente.")
 
-def predict_sentiment(text, model, tokenizer, device):
+def predict_sentiment(text, model, tokenizer, device='cpu'):
     encoding = tokenizer.encode_plus(
         text,
         max_length=MAX_LEN,
@@ -78,7 +94,7 @@ def predict_sentiment(text, model, tokenizer, device):
 async def predecir(text: str):
     # Ejemplo
     test_text = text
-    prediccion = f"{predict_sentiment(test_text, model, tokenizer, device)}"
+    prediccion = f"{predict_sentiment(test_text, model, tokenizer, 'cpu')}" #cambia cpu por device
     return {'Sentimiento': prediccion}
 
 #estructura del json
@@ -88,5 +104,11 @@ class SentimentRequest(BaseModel):
 @app.post('/predict/')
 async def predecir(request: SentimentRequest):
     test_text = request.text  # Obtener el texto del cuerpo
-    prediccion = predict_sentiment(test_text, model, tokenizer, device)
+    prediccion = predict_sentiment(test_text, model, tokenizer, 'cpu') #cambia cpu por device
     return {'Sentimiento': prediccion}
+
+import uvicorn
+import os
+if __name__ == "__main__":
+    port = int(os.getenv("PORT", 10000))  # Usa el puerto asignado por Render
+    uvicorn.run(app, host="0.0.0.0", port=port)
